@@ -81,22 +81,6 @@ class Character:
             5: []
         }
 
-    def to_dict(self):
-        """Convert character to dictionary for saving"""
-        return {
-            "name": self.name,
-            "player_name": self.player_name,
-            "level": self.level,
-            "exp": self.exp,
-            "gender": self.gender,
-            "age": self.age,
-            "character_class": self.character_class,
-            "type": self.type,
-            "gold": self.gold,  # Include gold
-            "class_skill": self.class_skill,
-        # Rest of the fields remain the same
-        # ...
-
     def calculate_initiative(self):
         """Calculate character's initiative based on DEX and INT"""
         return self.dex["value"] + self.int["value"]
@@ -127,6 +111,7 @@ class Character:
             "age": self.age,
             "character_class": self.character_class,
             "type": self.type,
+            "gold": self.gold,
             "class_skill": self.class_skill,
             "stats_used": self.stats_used,
             "effect": self.effect,

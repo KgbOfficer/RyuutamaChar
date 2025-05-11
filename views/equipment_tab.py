@@ -1,4 +1,234 @@
-self.destroy()
+import tkinter as tk
+from tkinter import ttk, messagebox
+from models.equipment import Weapon, Shield, Armor, Item
+
+
+class WeaponDialog(tk.Toplevel):
+    """Dialog for adding/editing weapons"""
+
+    def __init__(self, parent, title, weapon=None):
+        super().__init__(parent)
+        self.title(title)
+        self.resizable(False, False)
+        self.transient(parent)  # Set to be on top of the main window
+        self.grab_set()  # Make window modal
+
+        self.result = None
+        self.weapon = weapon  # Existing weapon or None for new
+
+        # Setup UI
+        self._setup_ui()
+
+        # Center on parent
+        self.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+
+        # Initialize fields if editing
+        if self.weapon:
+            self._initialize_fields()
+
+        # Wait for window to be closed
+        self.wait_window()
+
+    def _setup_ui(self):
+        """Setup the dialog UI"""
+        frame = ttk.Frame(self, padding=10)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        # Name field
+        ttk.Label(frame, text="Name:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.name_var = tk.StringVar()
+        ttk.Entry(frame, textvariable=self.name_var, width=30).grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+
+        # Accuracy field
+        ttk.Label(frame, text="Accuracy:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        self.accuracy_var = tk.IntVar(value=0)
+        ttk.Spinbox(frame, from_=-10, to=10, textvariable=self.accuracy_var, width=5).grid(row=1, column=1, padx=5,
+                                                                                           pady=5, sticky="w")
+
+        # Damage field
+        ttk.Label(frame, text="Damage:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        self.damage_var = tk.IntVar(value=0)
+        ttk.Spinbox(frame, from_=-10, to=10, textvariable=self.damage_var, width=5).grid(row=2, column=1, padx=5,
+                                                                                         pady=5, sticky="w")
+
+        # Durability field
+        ttk.Label(frame, text="Durability:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        self.durability_var = tk.IntVar(value=5)
+        ttk.Spinbox(frame, from_=1, to=20, textvariable=self.durability_var, width=5).grid(row=3, column=1, padx=5,
+                                                                                           pady=5, sticky="w")
+
+        # Effect field
+        ttk.Label(frame, text="Effect:").grid(row=4, column=0, padx=5, pady=5, sticky="w")
+        self.effect_var = tk.StringVar()
+        ttk.Entry(frame, textvariable=self.effect_var, width=30).grid(row=4, column=1, padx=5, pady=5, sticky="ew")
+
+        # Buttons
+        button_frame = ttk.Frame(frame)
+        button_frame.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
+
+        ttk.Button(button_frame, text="OK", command=self._on_ok).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=self._on_cancel).pack(side=tk.LEFT, padx=5)
+
+    def _initialize_fields(self):
+        """Initialize fields with existing weapon data"""
+        self.name_var.set(self.weapon.name)
+        self.accuracy_var.set(self.weapon.accuracy)
+        self.damage_var.set(self.weapon.damage)
+        self.durability_var.set(self.weapon.durability)
+        self.effect_var.set(self.weapon.effect)
+
+    def _on_ok(self):
+        """Handle OK button click"""
+        # Validate required fields
+        if not self.name_var.get():
+            messagebox.showerror("Error", "Name is required.")
+            return
+
+        # Create weapon object
+        self.result = Weapon(
+            name=self.name_var.get(),
+            effect=self.effect_var.get(),
+            durability=self.durability_var.get(),
+            accuracy=self.accuracy_var.get(),
+            damage=self.damage_var.get()
+        )
+
+        self.destroy()
+
+    def _on_cancel(self):
+        """Handle Cancel button click"""
+        self.destroy()
+
+
+class RulebookWeaponDialog(tk.Toplevel):
+    """Dialog for selecting and buying weapons from the rulebook"""
+
+    def __init__(self, parent, title, weapons_data, available_gold):
+        super().__init__(parent)
+        self.title(title)
+        self.minsize(700, 500)
+        self.transient(parent)  # Set to be on top of the main window
+        self.grab_set()  # Make window modal
+
+        self.weapons_data = weapons_data
+        self.available_gold = available_gold
+        self.result = None
+
+        # Setup UI
+        self._setup_ui()
+
+        # Center on parent
+        self.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+
+        # Wait for window to be closed
+        self.wait_window()
+
+    def _setup_ui(self):
+        """Setup the dialog UI"""
+        main_frame = ttk.Frame(self, padding=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Available gold display
+        gold_frame = ttk.Frame(main_frame)
+        gold_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(gold_frame, text=f"Available Gold: {self.available_gold}g", font=("Helvetica", 10, "bold")).pack(
+            side=tk.LEFT)
+
+        # Create a treeview with scrollbar for weapon selection
+        columns = ("name", "price", "size", "equip", "accuracy", "damage")
+        self.weapons_tree = ttk.Treeview(main_frame, columns=columns, show="headings", height=10)
+
+        # Define headings
+        self.weapons_tree.heading("name", text="Weapon")
+        self.weapons_tree.heading("price", text="Price")
+        self.weapons_tree.heading("size", text="Size")
+        self.weapons_tree.heading("equip", text="Equip")
+        self.weapons_tree.heading("accuracy", text="Accuracy")
+        self.weapons_tree.heading("damage", text="Damage")
+
+        # Define column widths
+        self.weapons_tree.column("name", width=120)
+        self.weapons_tree.column("price", width=80)
+        self.weapons_tree.column("size", width=50)
+        self.weapons_tree.column("equip", width=80)
+        self.weapons_tree.column("accuracy", width=100)
+        self.weapons_tree.column("damage", width=80)
+
+        # Add scrollbar
+        weapons_scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=self.weapons_tree.yview)
+        self.weapons_tree.configure(yscrollcommand=weapons_scrollbar.set)
+
+        # Position widgets
+        self.weapons_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        weapons_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Load weapons data
+        for weapon_name, weapon_info in self.weapons_data.items():
+            self.weapons_tree.insert("", tk.END, iid=weapon_name, values=(
+                weapon_name,
+                f"{weapon_info['price']}g",
+                weapon_info['size'],
+                weapon_info['equip'],
+                weapon_info['accuracy'],
+                weapon_info['damage']
+            ))
+
+        # Bind selection event
+        self.weapons_tree.bind("<<TreeviewSelect>>", self._on_weapon_select)
+
+        # Description frame
+        desc_frame = ttk.LabelFrame(main_frame, text="Weapon Description")
+        desc_frame.pack(fill=tk.X, pady=10)
+
+        self.description_var = tk.StringVar(value="Select a weapon to see its description")
+        desc_label = ttk.Label(desc_frame, textvariable=self.description_var, wraplength=680)
+        desc_label.pack(fill=tk.X, padx=5, pady=5)
+
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=10)
+
+        ttk.Button(button_frame, text="Buy Weapon", command=lambda: self._on_select("buy")).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Give Weapon", command=lambda: self._on_select("give")).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=self.destroy).pack(side=tk.RIGHT, padx=5)
+
+    def _on_weapon_select(self, event):
+        """Handle weapon selection in treeview"""
+        selected = self.weapons_tree.selection()
+        if selected:
+            weapon_name = selected[0]
+            weapon_info = self.weapons_data[weapon_name]
+            self.description_var.set(weapon_info["description"])
+
+    def _on_select(self, transaction_type):
+        """Handle weapon selection - buy or give"""
+        selected = self.weapons_tree.selection()
+        if not selected:
+            messagebox.showinfo("Select Weapon", "Please select a weapon from the list.")
+            return
+
+        weapon_name = selected[0]
+        weapon_info = self.weapons_data[weapon_name]
+
+        # If buying, check if they have enough gold
+        if transaction_type == "buy" and self.available_gold < weapon_info["price"]:
+            messagebox.showerror("Not Enough Gold",
+                                 f"You need {weapon_info['price']} gold to buy this weapon, but you only have {self.available_gold} gold.")
+            return
+
+        # Create a weapon object
+        from models.equipment import Weapon
+        weapon = Weapon(
+            name=weapon_name,
+            effect=weapon_info["description"],
+            durability=weapon_info["size"],  # Default durability to size
+            accuracy=0,  # These will be calculated in-game based on stats
+            damage=0
+        )
+
+        # Return the weapon and transaction type
+        self.result = (weapon, transaction_type)
+        self.destroy()
 
 
 class ItemDialog(tk.Toplevel):
@@ -246,137 +476,6 @@ class RulebookItemDialog(tk.Toplevel):
         self.destroy()
 
 
-class RulebookArmorDialog(tk.Toplevel):
-    """Dialog for selecting and buying armor from the rulebook"""
-
-    def __init__(self, parent, title, armor_data, available_gold):
-        super().__init__(parent)
-        self.title(title)
-        self.minsize(700, 400)
-        self.transient(parent)  # Set to be on top of the main window
-        self.grab_set()  # Make window modal
-
-        self.armor_data = armor_data
-        self.available_gold = available_gold
-        self.result = None
-
-        # Setup UI
-        self._setup_ui()
-
-        # Center on parent
-        self.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
-
-        # Wait for window to be closed
-        self.wait_window()
-
-    def _setup_ui(self):
-        """Setup the dialog UI"""
-        main_frame = ttk.Frame(self, padding=10)
-        main_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Available gold display
-        gold_frame = ttk.Frame(main_frame)
-        gold_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(gold_frame, text=f"Available Gold: {self.available_gold}g", font=("Helvetica", 10, "bold")).pack(
-            side=tk.LEFT)
-
-        # Create a treeview with scrollbar for armor selection
-        columns = ("name", "price", "size", "equip", "defense", "penalty")
-        self.armor_tree = ttk.Treeview(main_frame, columns=columns, show="headings", height=5)
-
-        # Define headings
-        self.armor_tree.heading("name", text="Armor")
-        self.armor_tree.heading("price", text="Price")
-        self.armor_tree.heading("size", text="Size")
-        self.armor_tree.heading("equip", text="Equip")
-        self.armor_tree.heading("defense", text="Defense")
-        self.armor_tree.heading("penalty", text="Penalty")
-
-        # Define column widths
-        self.armor_tree.column("name", width=120)
-        self.armor_tree.column("price", width=80)
-        self.armor_tree.column("size", width=50)
-        self.armor_tree.column("equip", width=80)
-        self.armor_tree.column("defense", width=80)
-        self.armor_tree.column("penalty", width=80)
-
-        # Add scrollbar
-        armor_scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=self.armor_tree.yview)
-        self.armor_tree.configure(yscrollcommand=armor_scrollbar.set)
-
-        # Position widgets
-        self.armor_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        armor_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        # Load armor data
-        for armor_name, armor_info in self.armor_data.items():
-            self.armor_tree.insert("", tk.END, iid=armor_name, values=(
-                armor_name,
-                f"{armor_info['price']}g",
-                armor_info['size'],
-                armor_info['equip'],
-                armor_info['defense'],
-                armor_info['penalty']
-            ))
-
-        # Bind selection event
-        self.armor_tree.bind("<<TreeviewSelect>>", self._on_armor_select)
-
-        # Description frame
-        desc_frame = ttk.LabelFrame(main_frame, text="Armor Description")
-        desc_frame.pack(fill=tk.X, pady=10)
-
-        self.description_var = tk.StringVar(value="Select armor to see its description")
-        desc_label = ttk.Label(desc_frame, textvariable=self.description_var, wraplength=680)
-        desc_label.pack(fill=tk.X, padx=5, pady=5)
-
-        # Buttons
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(fill=tk.X, pady=10)
-
-        ttk.Button(button_frame, text="Buy Armor", command=lambda: self._on_select("buy")).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Give Armor", command=lambda: self._on_select("give")).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Cancel", command=self.destroy).pack(side=tk.RIGHT, padx=5)
-
-    def _on_armor_select(self, event):
-        """Handle armor selection in treeview"""
-        selected = self.armor_tree.selection()
-        if selected:
-            armor_name = selected[0]
-            armor_info = self.armor_data[armor_name]
-            self.description_var.set(armor_info["description"])
-
-    def _on_select(self, transaction_type):
-        """Handle armor selection - buy or give"""
-        selected = self.armor_tree.selection()
-        if not selected:
-            messagebox.showinfo("Select Armor", "Please select armor from the list.")
-            return
-
-        armor_name = selected[0]
-        armor_info = self.armor_data[armor_name]
-
-        # If buying, check if they have enough gold
-        if transaction_type == "buy" and self.available_gold < armor_info["price"]:
-            messagebox.showerror("Not Enough Gold",
-                                 f"You need {armor_info['price']} gold to buy this armor, but you only have {self.available_gold} gold.")
-            return
-
-        # Create an armor object
-        from models.equipment import Armor
-        armor = Armor(
-            name=armor_name,
-            effect=armor_info["description"],
-            durability=armor_info["size"],  # Default durability to size
-            defense_points=armor_info["defense"],
-            penalty=armor_info["penalty"]
-        )
-
-        # Return the armor and transaction type
-        self.result = (armor, transaction_type)
-        self.destroy()
-
-
 class ShieldDialog(tk.Toplevel):
     """Dialog for adding/editing shields"""
 
@@ -598,108 +697,235 @@ class RulebookShieldDialog(tk.Toplevel):
         self.result = (shield, transaction_type)
         self.destroy()
 
+    class ArmorDialog(tk.Toplevel):
+        """Dialog for adding/editing armor"""
 
-class ArmorDialog(tk.Toplevel):
-    """Dialog for adding/editing armor"""
+        def __init__(self, parent, title, armor=None):
+            super().__init__(parent)
+            self.title(title)
+            self.resizable(False, False)
+            self.transient(parent)  # Set to be on top of the main window
+            self.grab_set()  # Make window modal
 
-    def __init__(self, parent, title, armor=None):
-        super().__init__(parent)
-        self.title(title)
-        self.resizable(False, False)
-        self.transient(parent)  # Set to be on top of the main window
-        self.grab_set()  # Make window modal
+            self.result = None
+            self.armor = armor  # Existing armor or None for new
 
-        self.result = None
-        self.armor = armor  # Existing armor or None for new
+            # Setup UI
+            self._setup_ui()
 
-        # Setup UI
-        self._setup_ui()
+            # Center on parent
+            self.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
 
-        # Center on parent
-        self.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+            # Initialize fields if editing
+            if self.armor:
+                self._initialize_fields()
 
-        # Initialize fields if editing
-        if self.armor:
-            self._initialize_fields()
+            # Wait for window to be closed
+            self.wait_window()
 
-        # Wait for window to be closed
-        self.wait_window()
+        def _setup_ui(self):
+            """Setup the dialog UI"""
+            frame = ttk.Frame(self, padding=10)
+            frame.pack(fill=tk.BOTH, expand=True)
 
-    def _setup_ui(self):
-        """Setup the dialog UI"""
-        frame = ttk.Frame(self, padding=10)
-        frame.pack(fill=tk.BOTH, expand=True)
+            # Name field
+            ttk.Label(frame, text="Name:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+            self.name_var = tk.StringVar()
+            ttk.Entry(frame, textvariable=self.name_var, width=30).grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        # Name field
-        ttk.Label(frame, text="Name:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.name_var = tk.StringVar()
-        ttk.Entry(frame, textvariable=self.name_var, width=30).grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+            # Defense Points field
+            ttk.Label(frame, text="Defense Points:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+            self.defense_var = tk.IntVar(value=1)
+            ttk.Spinbox(frame, from_=1, to=10, textvariable=self.defense_var, width=5).grid(row=1, column=1, padx=5,
+                                                                                            pady=5,
+                                                                                            sticky="w")
 
-        # Defense Points field
-        ttk.Label(frame, text="Defense Points:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
-        self.defense_var = tk.IntVar(value=1)
-        ttk.Spinbox(frame, from_=1, to=10, textvariable=self.defense_var, width=5).grid(row=1, column=1, padx=5, pady=5,
-                                                                                        sticky="w")
+            # Penalty field
+            ttk.Label(frame, text="Penalty:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+            self.penalty_var = tk.IntVar(value=0)
+            ttk.Spinbox(frame, from_=0, to=5, textvariable=self.penalty_var, width=5).grid(row=2, column=1, padx=5,
+                                                                                           pady=5,
+                                                                                           sticky="w")
 
-        # Penalty field
-        ttk.Label(frame, text="Penalty:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
-        self.penalty_var = tk.IntVar(value=0)
-        ttk.Spinbox(frame, from_=0, to=5, textvariable=self.penalty_var, width=5).grid(row=2, column=1, padx=5, pady=5,
-                                                                                       sticky="w")
+            # Durability field
+            ttk.Label(frame, text="Durability:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+            self.durability_var = tk.IntVar(value=5)
+            ttk.Spinbox(frame, from_=1, to=20, textvariable=self.durability_var, width=5).grid(row=3, column=1, padx=5,
+                                                                                               pady=5, sticky="w")
 
-        # Durability field
-        ttk.Label(frame, text="Durability:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
-        self.durability_var = tk.IntVar(value=5)
-        ttk.Spinbox(frame, from_=1, to=20, textvariable=self.durability_var, width=5).grid(row=3, column=1, padx=5,
-                                                                                           pady=5, sticky="w")
+            # Effect field
+            ttk.Label(frame, text="Effect:").grid(row=4, column=0, padx=5, pady=5, sticky="w")
+            self.effect_var = tk.StringVar()
+            ttk.Entry(frame, textvariable=self.effect_var, width=30).grid(row=4, column=1, padx=5, pady=5, sticky="ew")
 
-        # Effect field
-        ttk.Label(frame, text="Effect:").grid(row=4, column=0, padx=5, pady=5, sticky="w")
-        self.effect_var = tk.StringVar()
-        ttk.Entry(frame, textvariable=self.effect_var, width=30).grid(row=4, column=1, padx=5, pady=5, sticky="ew")
+            # Buttons
+            button_frame = ttk.Frame(frame)
+            button_frame.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
 
-        # Buttons
-        button_frame = ttk.Frame(frame)
-        button_frame.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
+            ttk.Button(button_frame, text="OK", command=self._on_ok).pack(side=tk.LEFT, padx=5)
+            ttk.Button(button_frame, text="Cancel", command=self._on_cancel).pack(side=tk.LEFT, padx=5)
 
-        ttk.Button(button_frame, text="OK", command=self._on_ok).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Cancel", command=self._on_cancel).pack(side=tk.LEFT, padx=5)
+        def _initialize_fields(self):
+            """Initialize fields with existing armor data"""
+            self.name_var.set(self.armor.name)
+            self.defense_var.set(self.armor.defense_points)
+            self.penalty_var.set(self.armor.penalty)
+            self.durability_var.set(self.armor.durability)
+            self.effect_var.set(self.armor.effect)
 
-    def _initialize_fields(self):
-        """Initialize fields with existing armor data"""
-        self.name_var.set(self.armor.name)
-        self.defense_var.set(self.armor.defense_points)
-        self.penalty_var.set(self.armor.penalty)
-        self.durability_var.set(self.armor.durability)
-        self.effect_var.set(self.armor.effect)
+        def _on_ok(self):
+            """Handle OK button click"""
+            # Validate required fields
+            if not self.name_var.get():
+                messagebox.showerror("Error", "Name is required.")
+                return
 
-    def _on_ok(self):
-        """Handle OK button click"""
-        # Validate required fields
-        if not self.name_var.get():
-            messagebox.showerror("Error", "Name is required.")
-            return
+            # Create armor object
+            self.result = Armor(
+                name=self.name_var.get(),
+                effect=self.effect_var.get(),
+                durability=self.durability_var.get(),
+                defense_points=self.defense_var.get(),
+                penalty=self.penalty_var.get()
+            )
 
-        # Create armor object
-        self.result = Armor(
-            name=self.name_var.get(),
-            effect=self.effect_var.get(),
-            durability=self.durability_var.get(),
-            defense_points=self.defense_var.get(),
-            penalty=self.penalty_var.get()
-        )
+            self.destroy()
 
-        self.destroy()
+        def _on_cancel(self):
+            """Handle Cancel button click"""
+            self.destroy()
 
-    def _on_cancel(self):
-        """Handle Cancel button click"""
-        self.destroy()
-        import tkinter as tk
+    class RulebookArmorDialog(tk.Toplevel):
+        """Dialog for selecting and buying armor from the rulebook"""
 
+        def __init__(self, parent, title, armor_data, available_gold):
+            super().__init__(parent)
+            self.title(title)
+            self.minsize(700, 400)
+            self.transient(parent)  # Set to be on top of the main window
+            self.grab_set()  # Make window modal
 
-from tkinter import ttk, messagebox
-from models.equipment import Weapon, Shield, Armor, Item
+            self.armor_data = armor_data
+            self.available_gold = available_gold
+            self.result = None
 
+            # Setup UI
+            self._setup_ui()
+
+            # Center on parent
+            self.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+
+            # Wait for window to be closed
+            self.wait_window()
+
+        def _setup_ui(self):
+            """Setup the dialog UI"""
+            main_frame = ttk.Frame(self, padding=10)
+            main_frame.pack(fill=tk.BOTH, expand=True)
+
+            # Available gold display
+            gold_frame = ttk.Frame(main_frame)
+            gold_frame.pack(fill=tk.X, pady=5)
+            ttk.Label(gold_frame, text=f"Available Gold: {self.available_gold}g", font=("Helvetica", 10, "bold")).pack(
+                side=tk.LEFT)
+
+            # Create a treeview with scrollbar for armor selection
+            columns = ("name", "price", "size", "equip", "defense", "penalty")
+            self.armor_tree = ttk.Treeview(main_frame, columns=columns, show="headings", height=5)
+
+            # Define headings
+            self.armor_tree.heading("name", text="Armor")
+            self.armor_tree.heading("price", text="Price")
+            self.armor_tree.heading("size", text="Size")
+            self.armor_tree.heading("equip", text="Equip")
+            self.armor_tree.heading("defense", text="Defense")
+            self.armor_tree.heading("penalty", text="Penalty")
+
+            # Define column widths
+            self.armor_tree.column("name", width=120)
+            self.armor_tree.column("price", width=80)
+            self.armor_tree.column("size", width=50)
+            self.armor_tree.column("equip", width=80)
+            self.armor_tree.column("defense", width=80)
+            self.armor_tree.column("penalty", width=80)
+
+            # Add scrollbar
+            armor_scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=self.armor_tree.yview)
+            self.armor_tree.configure(yscrollcommand=armor_scrollbar.set)
+
+            # Position widgets
+            self.armor_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            armor_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+            # Load armor data
+            for armor_name, armor_info in self.armor_data.items():
+                self.armor_tree.insert("", tk.END, iid=armor_name, values=(
+                    armor_name,
+                    f"{armor_info['price']}g",
+                    armor_info['size'],
+                    armor_info['equip'],
+                    armor_info['defense'],
+                    armor_info['penalty']
+                ))
+
+            # Bind selection event
+            self.armor_tree.bind("<<TreeviewSelect>>", self._on_armor_select)
+
+            # Description frame
+            desc_frame = ttk.LabelFrame(main_frame, text="Armor Description")
+            desc_frame.pack(fill=tk.X, pady=10)
+
+            self.description_var = tk.StringVar(value="Select armor to see its description")
+            desc_label = ttk.Label(desc_frame, textvariable=self.description_var, wraplength=680)
+            desc_label.pack(fill=tk.X, padx=5, pady=5)
+
+            # Buttons
+            button_frame = ttk.Frame(main_frame)
+            button_frame.pack(fill=tk.X, pady=10)
+
+            ttk.Button(button_frame, text="Buy Armor", command=lambda: self._on_select("buy")).pack(side=tk.LEFT,
+                                                                                                    padx=5)
+            ttk.Button(button_frame, text="Give Armor", command=lambda: self._on_select("give")).pack(side=tk.LEFT,
+                                                                                                      padx=5)
+            ttk.Button(button_frame, text="Cancel", command=self.destroy).pack(side=tk.RIGHT, padx=5)
+
+        def _on_armor_select(self, event):
+            """Handle armor selection in treeview"""
+            selected = self.armor_tree.selection()
+            if selected:
+                armor_name = selected[0]
+                armor_info = self.armor_data[armor_name]
+                self.description_var.set(armor_info["description"])
+
+        def _on_select(self, transaction_type):
+            """Handle armor selection - buy or give"""
+            selected = self.armor_tree.selection()
+            if not selected:
+                messagebox.showinfo("Select Armor", "Please select armor from the list.")
+                return
+
+            armor_name = selected[0]
+            armor_info = self.armor_data[armor_name]
+
+            # If buying, check if they have enough gold
+            if transaction_type == "buy" and self.available_gold < armor_info["price"]:
+                messagebox.showerror("Not Enough Gold",
+                                     f"You need {armor_info['price']} gold to buy this armor, but you only have {self.available_gold} gold.")
+                return
+
+            # Create an armor object
+            from models.equipment import Armor
+            armor = Armor(
+                name=armor_name,
+                effect=armor_info["description"],
+                durability=armor_info["size"],  # Default durability to size
+                defense_points=armor_info["defense"],
+                penalty=armor_info["penalty"]
+            )
+
+            # Return the armor and transaction type
+            self.result = (armor, transaction_type)
+            self.destroy()
 
 class EquipmentTab(ttk.Frame):
     """Tab for character equipment and items"""
@@ -1131,235 +1357,6 @@ class EquipmentTab(ttk.Frame):
         self._refresh_shield_display()
         self._refresh_armor_display()
         self._refresh_items_list()
-
-
-# Dialog class definitions
-class WeaponDialog(tk.Toplevel):
-    """Dialog for adding/editing weapons"""
-
-    def __init__(self, parent, title, weapon=None):
-        super().__init__(parent)
-        self.title(title)
-        self.resizable(False, False)
-        self.transient(parent)  # Set to be on top of the main window
-        self.grab_set()  # Make window modal
-
-        self.result = None
-        self.weapon = weapon  # Existing weapon or None for new
-
-        # Setup UI
-        self._setup_ui()
-
-        # Center on parent
-        self.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
-
-        # Initialize fields if editing
-        if self.weapon:
-            self._initialize_fields()
-
-        # Wait for window to be closed
-        self.wait_window()
-
-    def _setup_ui(self):
-        """Setup the dialog UI"""
-        frame = ttk.Frame(self, padding=10)
-        frame.pack(fill=tk.BOTH, expand=True)
-
-        # Name field
-        ttk.Label(frame, text="Name:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.name_var = tk.StringVar()
-        ttk.Entry(frame, textvariable=self.name_var, width=30).grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-
-        # Accuracy field
-        ttk.Label(frame, text="Accuracy:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
-        self.accuracy_var = tk.IntVar(value=0)
-        ttk.Spinbox(frame, from_=-10, to=10, textvariable=self.accuracy_var, width=5).grid(row=1, column=1, padx=5,
-                                                                                           pady=5, sticky="w")
-
-        # Damage field
-        ttk.Label(frame, text="Damage:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
-        self.damage_var = tk.IntVar(value=0)
-        ttk.Spinbox(frame, from_=-10, to=10, textvariable=self.damage_var, width=5).grid(row=2, column=1, padx=5,
-                                                                                         pady=5, sticky="w")
-
-        # Durability field
-        ttk.Label(frame, text="Durability:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
-        self.durability_var = tk.IntVar(value=5)
-        ttk.Spinbox(frame, from_=1, to=20, textvariable=self.durability_var, width=5).grid(row=3, column=1, padx=5,
-                                                                                           pady=5, sticky="w")
-
-        # Effect field
-        ttk.Label(frame, text="Effect:").grid(row=4, column=0, padx=5, pady=5, sticky="w")
-        self.effect_var = tk.StringVar()
-        ttk.Entry(frame, textvariable=self.effect_var, width=30).grid(row=4, column=1, padx=5, pady=5, sticky="ew")
-
-        # Buttons
-        button_frame = ttk.Frame(frame)
-        button_frame.grid(row=5, column=0, columnspan=2, padx=5, pady=10)
-
-        ttk.Button(button_frame, text="OK", command=self._on_ok).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Cancel", command=self._on_cancel).pack(side=tk.LEFT, padx=5)
-
-    def _initialize_fields(self):
-        """Initialize fields with existing weapon data"""
-        self.name_var.set(self.weapon.name)
-        self.accuracy_var.set(self.weapon.accuracy)
-        self.damage_var.set(self.weapon.damage)
-        self.durability_var.set(self.weapon.durability)
-        self.effect_var.set(self.weapon.effect)
-
-    def _on_ok(self):
-        """Handle OK button click"""
-        # Validate required fields
-        if not self.name_var.get():
-            messagebox.showerror("Error", "Name is required.")
-            return
-
-        # Create weapon object
-        self.result = Weapon(
-            name=self.name_var.get(),
-            effect=self.effect_var.get(),
-            durability=self.durability_var.get(),
-            accuracy=self.accuracy_var.get(),
-            damage=self.damage_var.get()
-        )
-
-        self.destroy()
-
-    def _on_cancel(self):
-        """Handle Cancel button click"""
-        self.destroy()
-
-
-class RulebookWeaponDialog(tk.Toplevel):
-    """Dialog for selecting and buying weapons from the rulebook"""
-
-    def __init__(self, parent, title, weapons_data, available_gold):
-        super().__init__(parent)
-        self.title(title)
-        self.minsize(700, 500)
-        self.transient(parent)  # Set to be on top of the main window
-        self.grab_set()  # Make window modal
-
-        self.weapons_data = weapons_data
-        self.available_gold = available_gold
-        self.result = None
-
-        # Setup UI
-        self._setup_ui()
-
-        # Center on parent
-        self.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
-
-        # Wait for window to be closed
-        self.wait_window()
-
-    def _setup_ui(self):
-        """Setup the dialog UI"""
-        main_frame = ttk.Frame(self, padding=10)
-        main_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Available gold display
-        gold_frame = ttk.Frame(main_frame)
-        gold_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(gold_frame, text=f"Available Gold: {self.available_gold}g", font=("Helvetica", 10, "bold")).pack(
-            side=tk.LEFT)
-
-        # Create a treeview with scrollbar for weapon selection
-        columns = ("name", "price", "size", "equip", "accuracy", "damage")
-        self.weapons_tree = ttk.Treeview(main_frame, columns=columns, show="headings", height=10)
-
-        # Define headings
-        self.weapons_tree.heading("name", text="Weapon")
-        self.weapons_tree.heading("price", text="Price")
-        self.weapons_tree.heading("size", text="Size")
-        self.weapons_tree.heading("equip", text="Equip")
-        self.weapons_tree.heading("accuracy", text="Accuracy")
-        self.weapons_tree.heading("damage", text="Damage")
-
-        # Define column widths
-        self.weapons_tree.column("name", width=120)
-        self.weapons_tree.column("price", width=80)
-        self.weapons_tree.column("size", width=50)
-        self.weapons_tree.column("equip", width=80)
-        self.weapons_tree.column("accuracy", width=100)
-        self.weapons_tree.column("damage", width=80)
-
-        # Add scrollbar
-        weapons_scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=self.weapons_tree.yview)
-        self.weapons_tree.configure(yscrollcommand=weapons_scrollbar.set)
-
-        # Position widgets
-        self.weapons_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        weapons_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        # Load weapons data
-        for weapon_name, weapon_info in self.weapons_data.items():
-            self.weapons_tree.insert("", tk.END, iid=weapon_name, values=(
-                weapon_name,
-                f"{weapon_info['price']}g",
-                weapon_info['size'],
-                weapon_info['equip'],
-                weapon_info['accuracy'],
-                weapon_info['damage']
-            ))
-
-        # Bind selection event
-        self.weapons_tree.bind("<<TreeviewSelect>>", self._on_weapon_select)
-
-        # Description frame
-        desc_frame = ttk.LabelFrame(main_frame, text="Weapon Description")
-        desc_frame.pack(fill=tk.X, pady=10)
-
-        self.description_var = tk.StringVar(value="Select a weapon to see its description")
-        desc_label = ttk.Label(desc_frame, textvariable=self.description_var, wraplength=680)
-        desc_label.pack(fill=tk.X, padx=5, pady=5)
-
-        # Buttons
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(fill=tk.X, pady=10)
-
-        ttk.Button(button_frame, text="Buy Weapon", command=lambda: self._on_select("buy")).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Give Weapon", command=lambda: self._on_select("give")).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Cancel", command=self.destroy).pack(side=tk.RIGHT, padx=5)
-
-    def _on_weapon_select(self, event):
-        """Handle weapon selection in treeview"""
-        selected = self.weapons_tree.selection()
-        if selected:
-            weapon_name = selected[0]
-            weapon_info = self.weapons_data[weapon_name]
-            self.description_var.set(weapon_info["description"])
-
-    def _on_select(self, transaction_type):
-        """Handle weapon selection - buy or give"""
-        selected = self.weapons_tree.selection()
-        if not selected:
-            messagebox.showinfo("Select Weapon", "Please select a weapon from the list.")
-            return
-
-        weapon_name = selected[0]
-        weapon_info = self.weapons_data[weapon_name]
-
-        # If buying, check if they have enough gold
-        if transaction_type == "buy" and self.available_gold < weapon_info["price"]:
-            messagebox.showerror("Not Enough Gold",
-                                 f"You need {weapon_info['price']} gold to buy this weapon, but you only have {self.available_gold} gold.")
-            return
-
-        # Create a weapon object
-        from models.equipment import Weapon
-        weapon = Weapon(
-            name=weapon_name,
-            effect=weapon_info["description"],
-            durability=weapon_info["size"],  # Default durability to size
-            accuracy=0,  # These will be calculated in-game based on stats
-            damage=0
-        )
-
-        # Return the weapon and transaction type
-        self.result = (weapon, transaction_type)
-        self.destroy()
 
     def _add_weapon(self):
         """Open dialog to add a new weapon"""

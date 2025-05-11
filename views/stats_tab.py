@@ -28,11 +28,14 @@ class StatsTab(ttk.Frame):
         derived_frame = ttk.LabelFrame(self, text="Derived Stats")
         derived_frame.grid(row=0, column=1, padx=10, pady=5, sticky="nsew")
 
+        health_frame = ttk.LabelFrame(self, text="Health & Magic")
+        health_frame.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
+
         abilities_frame = ttk.LabelFrame(self, text="Abilities & Spells")
-        abilities_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
+        abilities_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
 
         # Make abilities frame expandable
-        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=1)
 
         # Character Stats Section
         # Setup the STR stat
@@ -52,18 +55,8 @@ class StatsTab(ttk.Frame):
         self.str_value_spinbox = ttk.Spinbox(str_frame, from_=1, to=20, textvariable=self.str_value_var, width=3)
         self.str_value_spinbox.pack(side=tk.LEFT, padx=2)
         self.str_value_spinbox.bind("<KeyRelease>", lambda e: self._on_value_change("str"))
-
-        ttk.Label(str_frame, text="Max:").pack(side=tk.LEFT, padx=2)
-        self.str_max_var = tk.IntVar(value=6)
-        self.str_max_spinbox = ttk.Spinbox(str_frame, from_=1, to=20, textvariable=self.str_max_var, width=3)
-        self.str_max_spinbox.pack(side=tk.LEFT, padx=2)
-        self.str_max_spinbox.bind("<KeyRelease>", lambda e: self._on_max_change("str"))
-
-        ttk.Label(str_frame, text="Current:").pack(side=tk.LEFT, padx=2)
-        self.str_current_var = tk.IntVar(value=6)
-        self.str_current_spinbox = ttk.Spinbox(str_frame, from_=0, to=20, textvariable=self.str_current_var, width=3)
-        self.str_current_spinbox.pack(side=tk.LEFT, padx=2)
-        self.str_current_spinbox.bind("<KeyRelease>", lambda e: self._on_current_change("str"))
+        self.str_value_spinbox.bind("<<Increment>>", lambda e: self._on_value_change("str"))
+        self.str_value_spinbox.bind("<<Decrement>>", lambda e: self._on_value_change("str"))
 
         # Setup the DEX stat
         ttk.Label(stats_frame, text="DEX (Dexterity)").grid(row=1, column=0, padx=5, pady=5, sticky="w")
@@ -82,6 +75,8 @@ class StatsTab(ttk.Frame):
         self.dex_value_spinbox = ttk.Spinbox(dex_frame, from_=1, to=20, textvariable=self.dex_value_var, width=3)
         self.dex_value_spinbox.pack(side=tk.LEFT, padx=2)
         self.dex_value_spinbox.bind("<KeyRelease>", lambda e: self._on_value_change("dex"))
+        self.dex_value_spinbox.bind("<<Increment>>", lambda e: self._on_value_change("dex"))
+        self.dex_value_spinbox.bind("<<Decrement>>", lambda e: self._on_value_change("dex"))
 
         # Setup the INT stat
         ttk.Label(stats_frame, text="INT (Intelligence)").grid(row=2, column=0, padx=5, pady=5, sticky="w")
@@ -100,6 +95,8 @@ class StatsTab(ttk.Frame):
         self.int_value_spinbox = ttk.Spinbox(int_frame, from_=1, to=20, textvariable=self.int_value_var, width=3)
         self.int_value_spinbox.pack(side=tk.LEFT, padx=2)
         self.int_value_spinbox.bind("<KeyRelease>", lambda e: self._on_value_change("int"))
+        self.int_value_spinbox.bind("<<Increment>>", lambda e: self._on_value_change("int"))
+        self.int_value_spinbox.bind("<<Decrement>>", lambda e: self._on_value_change("int"))
 
         # Setup the SPI stat
         ttk.Label(stats_frame, text="SPI (Spirit)").grid(row=3, column=0, padx=5, pady=5, sticky="w")
@@ -118,18 +115,12 @@ class StatsTab(ttk.Frame):
         self.spi_value_spinbox = ttk.Spinbox(spi_frame, from_=1, to=20, textvariable=self.spi_value_var, width=3)
         self.spi_value_spinbox.pack(side=tk.LEFT, padx=2)
         self.spi_value_spinbox.bind("<KeyRelease>", lambda e: self._on_value_change("spi"))
+        self.spi_value_spinbox.bind("<<Increment>>", lambda e: self._on_value_change("spi"))
+        self.spi_value_spinbox.bind("<<Decrement>>", lambda e: self._on_value_change("spi"))
 
-        ttk.Label(spi_frame, text="Max:").pack(side=tk.LEFT, padx=2)
-        self.spi_max_var = tk.IntVar(value=6)
-        self.spi_max_spinbox = ttk.Spinbox(spi_frame, from_=1, to=20, textvariable=self.spi_max_var, width=3)
-        self.spi_max_spinbox.pack(side=tk.LEFT, padx=2)
-        self.spi_max_spinbox.bind("<KeyRelease>", lambda e: self._on_max_change("spi"))
-
-        ttk.Label(spi_frame, text="Current:").pack(side=tk.LEFT, padx=2)
+        # For backward compatibility - keep the current variables but don't display them
+        self.str_current_var = tk.IntVar(value=6)
         self.spi_current_var = tk.IntVar(value=6)
-        self.spi_current_spinbox = ttk.Spinbox(spi_frame, from_=0, to=20, textvariable=self.spi_current_var, width=3)
-        self.spi_current_spinbox.pack(side=tk.LEFT, padx=2)
-        self.spi_current_spinbox.bind("<KeyRelease>", lambda e: self._on_current_change("spi"))
 
         # Stat total calculation
         ttk.Label(stats_frame, text="Total Value:").grid(row=4, column=0, padx=5, pady=10, sticky="w")
@@ -142,6 +133,41 @@ class StatsTab(ttk.Frame):
         ttk.Label(stats_frame, text="Bonus:").grid(row=5, column=0, padx=5, pady=5, sticky="w")
         self.stat_bonus_var = tk.StringVar(value="If over 10, add 1 dice size to any 1 stat")
         ttk.Label(stats_frame, textvariable=self.stat_bonus_var).grid(row=5, column=1, padx=5, pady=5, sticky="w")
+
+        # Health & Magic Section - New section for HP and MP
+        # Max HP (derived from STR)
+        ttk.Label(health_frame, text="Max HP (STR × 2):").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.max_hp_var = tk.StringVar(value="12")
+        ttk.Label(health_frame, textvariable=self.max_hp_var, font=("Helvetica", 14, "bold")).grid(
+            row=0, column=1, padx=5, pady=5, sticky="w")
+
+        # Current HP
+        ttk.Label(health_frame, text="Current HP:").grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        self.current_hp_var = tk.IntVar(value=12)
+        current_hp_spinbox = ttk.Spinbox(health_frame, from_=0, to=999, textvariable=self.current_hp_var, width=5)
+        current_hp_spinbox.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+        current_hp_spinbox.bind("<KeyRelease>", self._on_hp_change)
+
+        # Max MP (derived from SPI)
+        ttk.Label(health_frame, text="Max MP (SPI × 2):").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        self.max_mp_var = tk.StringVar(value="12")
+        ttk.Label(health_frame, textvariable=self.max_mp_var, font=("Helvetica", 14, "bold")).grid(
+            row=1, column=1, padx=5, pady=5, sticky="w")
+
+        # Current MP
+        ttk.Label(health_frame, text="Current MP:").grid(row=1, column=2, padx=5, pady=5, sticky="w")
+        self.current_mp_var = tk.IntVar(value=12)
+        current_mp_spinbox = ttk.Spinbox(health_frame, from_=0, to=999, textvariable=self.current_mp_var, width=5)
+        current_mp_spinbox.grid(row=1, column=3, padx=5, pady=5, sticky="w")
+        current_mp_spinbox.bind("<KeyRelease>", self._on_mp_change)
+
+        # Calculate button
+        ttk.Button(health_frame, text="Recalculate HP/MP", command=self._calculate_hp_mp).grid(
+            row=2, column=0, columnspan=4, padx=5, pady=10)
+
+        # Set column weights for health frame
+        for i in range(4):
+            health_frame.columnconfigure(i, weight=1)
 
         # Derived Stats Section
         # Initiative calculation
@@ -269,43 +295,71 @@ class StatsTab(ttk.Frame):
         avg_value = Stat.get_average_value(die_size)
         value_var.set(round(avg_value))
 
-        # Update character model
-        self._update_character_from_ui()
-        self._update_derived_stats()
-        self.app_controller.mark_unsaved_changes()
-
-    def _on_value_change(self, stat_name):
-        """Handle value change for a stat"""
-        # Update character model
-        self._update_character_from_ui()
-        self._update_derived_stats()
-        self.app_controller.mark_unsaved_changes()
-
-    def _on_max_change(self, stat_name):
-        """Handle max value change for a stat"""
-        value_var = getattr(self, f"{stat_name}_max_var")
-        current_var = getattr(self, f"{stat_name}_current_var")
-
-        # Ensure current value doesn't exceed max
-        if current_var.get() > value_var.get():
+        # Keep current value in sync with base value (since we don't display it separately)
+        if stat_name == "str" or stat_name == "spi":
+            current_var = getattr(self, f"{stat_name}_current_var")
             current_var.set(value_var.get())
 
         # Update character model
         self._update_character_from_ui()
+        self._update_derived_stats()
+        self._calculate_hp_mp()  # Also update HP/MP when STR/SPI change
         self.app_controller.mark_unsaved_changes()
 
-    def _on_current_change(self, stat_name):
-        """Handle current value change for a stat"""
-        max_var = getattr(self, f"{stat_name}_max_var")
-        current_var = getattr(self, f"{stat_name}_current_var")
-
-        # Ensure current value doesn't exceed max
-        if current_var.get() > max_var.get():
-            current_var.set(max_var.get())
+    def _on_value_change(self, stat_name):
+        """Handle value change for a stat"""
+        # Keep current value in sync with base value (since we don't display it separately)
+        if stat_name == "str" or stat_name == "spi":
+            value_var = getattr(self, f"{stat_name}_value_var")
+            current_var = getattr(self, f"{stat_name}_current_var")
+            current_var.set(value_var.get())
 
         # Update character model
         self._update_character_from_ui()
+        self._update_derived_stats()
+        self._calculate_hp_mp()  # Also update HP/MP when STR/SPI change
         self.app_controller.mark_unsaved_changes()
+
+    def _on_hp_change(self, event=None):
+        """Handle HP change"""
+        # Ensure HP doesn't exceed max
+        max_hp = int(self.max_hp_var.get())
+        if self.current_hp_var.get() > max_hp:
+            self.current_hp_var.set(max_hp)
+
+        self._update_character_from_ui()
+        self.app_controller.mark_unsaved_changes()
+
+    def _on_mp_change(self, event=None):
+        """Handle MP change"""
+        # Ensure MP doesn't exceed max
+        max_mp = int(self.max_mp_var.get())
+        if self.current_mp_var.get() > max_mp:
+            self.current_mp_var.set(max_mp)
+
+        self._update_character_from_ui()
+        self.app_controller.mark_unsaved_changes()
+
+    def _calculate_hp_mp(self):
+        """Calculate HP and MP based on STR and SPI"""
+        # Calculate Max HP (STR * 2)
+        str_value = self.str_value_var.get()
+        max_hp = str_value * 2
+        self.max_hp_var.set(str(max_hp))
+
+        # Calculate Max MP (SPI * 2)
+        spi_value = self.spi_value_var.get()
+        max_mp = spi_value * 2
+        self.max_mp_var.set(str(max_mp))
+
+        # Adjust current values if they exceed max
+        if self.current_hp_var.get() > max_hp:
+            self.current_hp_var.set(max_hp)
+        if self.current_mp_var.get() > max_mp:
+            self.current_mp_var.set(max_mp)
+
+        # Update character model
+        self._update_character_from_ui()
 
     def _on_fumble_change(self, event=None):
         """Handle fumble points change"""
@@ -378,8 +432,8 @@ class StatsTab(ttk.Frame):
         # Update stat values
         character.str["die_size"] = self.str_die_var.get()
         character.str["value"] = self.str_value_var.get()
-        character.str["max"] = self.str_max_var.get()
-        character.str["current"] = self.str_current_var.get()
+        character.str["max"] = self.str_value_var.get()  # Max STR is the base value
+        character.str["current"] = self.str_current_var.get()  # Keep this for backward compatibility
 
         character.dex["die_size"] = self.dex_die_var.get()
         character.dex["value"] = self.dex_value_var.get()
@@ -389,8 +443,21 @@ class StatsTab(ttk.Frame):
 
         character.spi["die_size"] = self.spi_die_var.get()
         character.spi["value"] = self.spi_value_var.get()
-        character.spi["max"] = self.spi_max_var.get()
-        character.spi["current"] = self.spi_current_var.get()
+        character.spi["max"] = self.spi_value_var.get()  # Max SPI is the base value
+        character.spi["current"] = self.spi_current_var.get()  # Keep this for backward compatibility
+
+        # Update HP and MP values
+        # Make sure the character has hp and mp attributes
+        if not hasattr(character, 'hp'):
+            character.hp = {}
+        if not hasattr(character, 'mp'):
+            character.mp = {}
+
+        character.hp["max"] = int(self.max_hp_var.get())
+        character.hp["current"] = self.current_hp_var.get()
+
+        character.mp["max"] = int(self.max_mp_var.get())
+        character.mp["current"] = self.current_mp_var.get()
 
         # Update derived stats
         character.initiative = self.initiative_var.get()
@@ -414,8 +481,7 @@ class StatsTab(ttk.Frame):
         # Update stat values
         self.str_die_var.set(character.str["die_size"])
         self.str_value_var.set(character.str["value"])
-        self.str_max_var.set(character.str["max"])
-        self.str_current_var.set(character.str["current"])
+        self.str_current_var.set(character.str["current"])  # Keep this for backward compatibility
 
         self.dex_die_var.set(character.dex["die_size"])
         self.dex_value_var.set(character.dex["value"])
@@ -425,12 +491,29 @@ class StatsTab(ttk.Frame):
 
         self.spi_die_var.set(character.spi["die_size"])
         self.spi_value_var.set(character.spi["value"])
-        self.spi_max_var.set(character.spi["max"])
-        self.spi_current_var.set(character.spi["current"])
+        self.spi_current_var.set(character.spi["current"])  # Keep this for backward compatibility
 
         # Update derived stats
         self.initiative_var.set(character.initiative)
         self.fumble_var.set(character.fumble_points)
+
+        # Update HP and MP values
+        max_hp = character.str["value"] * 2
+        self.max_hp_var.set(str(max_hp))
+
+        max_mp = character.spi["value"] * 2
+        self.max_mp_var.set(str(max_mp))
+
+        # Handle updated HP/MP in character model
+        if hasattr(character, 'hp') and 'current' in character.hp:
+            self.current_hp_var.set(character.hp["current"])
+        else:
+            self.current_hp_var.set(max_hp)
+
+        if hasattr(character, 'mp') and 'current' in character.mp:
+            self.current_mp_var.set(character.mp["current"])
+        else:
+            self.current_mp_var.set(max_mp)
 
         # Update condition checks
         self.str_condition_var.set(character.condition_checks["str"])

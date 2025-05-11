@@ -10,6 +10,9 @@ class Character:
         self.character_class = ""
         self.type = ""
 
+        # Gold
+        self.gold = 1000  # Default starting gold
+
         # Class details
         self.class_skill = ""
         self.stats_used = ""
@@ -23,6 +26,10 @@ class Character:
         self.dex = {"value": 6, "die_size": "d6"}
         self.int = {"value": 6, "die_size": "d6"}
         self.spi = {"value": 6, "die_size": "d6", "max": 6, "current": 6}
+
+        # Health and Magic
+        self.hp = {"max": 12, "current": 12}  # Default HP (STR * 2)
+        self.mp = {"max": 12, "current": 12}  # Default MP (SPI * 2)
 
         # Additional stats
         self.initiative = 0
@@ -74,6 +81,22 @@ class Character:
             5: []
         }
 
+    def to_dict(self):
+        """Convert character to dictionary for saving"""
+        return {
+            "name": self.name,
+            "player_name": self.player_name,
+            "level": self.level,
+            "exp": self.exp,
+            "gender": self.gender,
+            "age": self.age,
+            "character_class": self.character_class,
+            "type": self.type,
+            "gold": self.gold,  # Include gold
+            "class_skill": self.class_skill,
+        # Rest of the fields remain the same
+        # ...
+
     def calculate_initiative(self):
         """Calculate character's initiative based on DEX and INT"""
         return self.dex["value"] + self.int["value"]
@@ -114,6 +137,8 @@ class Character:
             "dex": self.dex,
             "int": self.int,
             "spi": self.spi,
+            "hp": self.hp,
+            "mp": self.mp,
             "initiative": self.initiative,
             "fumble_points": self.fumble_points,
             "weapons": [w.to_dict() for w in self.weapons] if self.weapons else [],
